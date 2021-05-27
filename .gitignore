@@ -2,3 +2,4 @@
 *.ini
 *.db-journal
 *.db-journal
+*.pyc
