@@ -14,8 +14,13 @@ def GeneratePopulation():
     data_cur = data_db.cursor()
     pop_cur = pop_db.cursor()
     if DESTROY_TABLE:
-        pop_cur.execute("DROP TABLE population")
-    pop_cur.execute('CREATE TABLE "population" (	"id_individu"	INTEGER NOT NULL, "age"	INTEGER NOT NULL,	"maladie_chronique"	INTEGER NOT NULL DEFAULT 0,	PRIMARY KEY("id_individu" AUTOINCREMENT))')
+        try:
+            pop_cur.execute("DROP TABLE population")
+            pop_cur.execute("DROP TABLE etat")
+        except:
+            pass
+    pop_cur.execute('CREATE TABLE IF NOT EXISTS "population" (	"id_individu"	INTEGER NOT NULL, "age"	INTEGER NOT NULL,	"maladie_chronique"	INTEGER NOT NULL DEFAULT 0,	PRIMARY KEY("id_individu" AUTOINCREMENT))')
+    pop_cur.execute('CREATE TABLE IF NOT EXISTS "etat" (	"id_individu"	INTEGER NOT NULL, "vivant"	INTEGER NOT NULL DEFAULT 1,	"phase_infection"	INTEGER NOT NULL DEFAULT 0,	"phase_vaccin" INTEGER NOT NULL DEFAULT 0, "id_vaccin" INTEGER DEFAULT NULL, PRIMARY KEY("id_individu" AUTOINCREMENT))')
     pop_db.commit()
 
     print("Attribution de l'âge...")
@@ -25,6 +30,7 @@ def GeneratePopulation():
         nb_individu_age = round(data_cur.execute("SELECT proportion FROM age WHERE age = ?", (age,)).fetchall()[0][0] * nb_population)
         for individu in range(nb_individu_age): #On créer le bon nombre d'individu de cet age
             pop_cur.execute("INSERT INTO population (age) VALUES (?)", (age,))
+            pop_cur.execute("INSERT INTO etat DEFAULT VALUES")
     pop_db.commit()
 
     print("Attribution de la présence de maladies chroniques...")
