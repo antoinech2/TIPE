@@ -18,41 +18,32 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-def chance_infecte(p):  # return True si il devient infecté avec une proba p
+max_jour = 50
+
+#Variables de simulation [TEMPORAIRE]
+variance_pop = 1  # recommandé : 1
+rayon_contamination = 0.5  # recommandé : 0.5
+infectiosite = 0.17  # recommandé : 10%
+p = 0.15  # recommandé : 10% : IMMUNITE
+d = 0.05  # recommandé : 5% : MORT
+
+#Fonctions temporaires pour déterminer la propagation du virus
+#A modifier pour prendre en compte les caractéristiques de chaque individu
+
+def ChanceInfection(individu):  # return True si il devient infecté avec une proba p
     proba = int(p * 100)
-    return rd.randint(0, 100) <= proba
+    return rd.randint(0, 100) <= infectiosite
 
-def immuniser(l, l2, p):  # l: infectés; l2: immunisés précédents
-    drop = 0
-    for i in range(len(l)):
-        proba = int(p * 100)
-        if rd.randint(0, 100) <= proba:
-            l2.append(l[i-drop])
-            l.remove(l[i-drop])
-            drop+=1
-    return l, l2
+def ChanceImmunite(individu):  # l: infectés; l2: immunisés précédents
+    return rd.randint(0, 100) <= p
 
-def deces(l, l2, l3, p):  # l: infectés; l2: décès précédents; l3: immunisés
-    l_p = l[:]  # création d'une copie pour éviter erreur d'indice
-    for i in range(len(l_p)):
-        proba = int(p * 100)
-        if rd.randint(0, 100) <= proba and l_p[i] not in l3:
-            l2.append(l_p[i])
-            l.remove(l_p[i])
-    return l, l2
-
+def ChanceMort(individu):  # l: infectés; l2: décès précédents; l3: immunisés
+    return rd.randint(0, 100) <= d
 
 def StartSimulation():
     """Simulation de l'épidémie"""
     print('Début de la simulation ... \n')
     start = time.time()
-
-    #Variables de simulation [A CHANGER]
-    variance_pop = 1  # recommandé : 1
-    rayon_contamination = 0.5  # recommandé : 0.5
-    infectiosite = 0.17  # recommandé : 10%
-    p = 0.1  # recommandé : 10%
-    d = 0.05  # recommandé : 5%
 
     # NOTE : si les courbes restent constantes, augmentez le rayon de contamination
     # si le virus est trés mortel il n'y aura pas beaucoup de propagation
@@ -104,7 +95,7 @@ def StartSimulation():
     # Jours 2 à n
 
     #On boucle sur chaque jour de simulation jusqu'à une condition d'arrêt (plus d'infection ou plus de neutre)
-    while GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10: #condition d'arrêt
+    while jour <= max_jour and (GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10): #condition d'arrêt
         print("Jour {}...".format(jour))
 
         #Traitement des individus ayant un état à durée limitée
@@ -129,15 +120,17 @@ def StartSimulation():
 
         #On boucle sur tous les infectés pour éventuellement infecter des nouvelles personnes
         for id_infecte in GetListEtatInfection(INFECTE):
-            for id_sain in GetListEtatInfection(SAIN):
+            for id_sain in GetListEtatInfection(NEUTRE):
                 #Si l'individu sain et infectés sont proches, on applique la fonction proba pour déterminer si il devient infecté
                 # A MODIFIER: Il ne faudrait plus utiliser de système de coordonées mais plutot calculer un facteur de rencintre
                 # et faire varier la capacité de transmettre le virus selon le nombre de personnes cotoyés
                 if distance_e(data['coord'][id_infecte],data['coord'][id_sain]) < rayon_contamination :
                     #On vérifie si l'individu est encore sain à cet endroit de la boucle
-                    if GetEtatInfection(id_sain) in SAIN and ChanceInfection(id_sain):
-                        #On infecte l'individu sain
-                        Infect(id_sain)
+                    if GetEtatInfection(id_sain) in SAIN:
+                        if ChanceInfection(id_sain):
+                            #On infecte l'individu sain
+                            Infect(id_sain)
+
         #On applique les modifications et on passe au jour suivant
         pop_db.commit()
         jour += 1

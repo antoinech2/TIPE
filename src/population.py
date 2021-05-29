@@ -71,7 +71,7 @@ def CloseDB():
 
 def GetAllEtat():
     """Renvoie tous les individus et leur état"""
-    request = np.array(pop_cur.execute("SELECT id_individu, etat FROM etat").fetchall())
+    request = pop_cur.execute("SELECT id_individu, etat FROM etat").fetchall()
     return request#[(r[k][0], r[k][1]) for k in request]
 
 def GetNombreEtatInfection(etat):
@@ -101,15 +101,15 @@ def GetListDureeEtat():
 def Infect(id_individu):
     """Infecte un individu et défini son temps d'infection"""
     ChangeEtat(id_individu, INFECTE)
-    pop_cur.execute("UPDATE etat SET duree_etat = ? WHERE id_individu = ?", (DUREE[INFECTE], id_individu))
+    pop_cur.execute("UPDATE etat SET duree_etat = ? WHERE id_individu = ?", (DUREE[INFECTE], int(id_individu)))
 
 def ReduceDureeEtat(id_individu):
     """Réduit d'un jour la durée restante de l'état d'un individu"""
-    pop_cur.execute("UPDATE etat SET duree_etat = duree_etat - 1 WHERE id_individu = ?", (id_individu, ))
+    pop_cur.execute("UPDATE etat SET duree_etat = duree_etat - 1 WHERE id_individu = ?", (int(id_individu), ))
 
 def ChangeEtat(id_individu, new_etat):
     """Change l'état d'un individu"""
-    pop_cur.execute("UPDATE etat SET etat = ?,  duree_etat = NULL WHERE id_individu = ?", (new_etat, id_individu))
+    pop_cur.execute("UPDATE etat SET etat = ?,  duree_etat = NULL WHERE id_individu = ?", (new_etat, int(id_individu)))
 
 def Mort(id_individu):
     """Tue l'individu"""
