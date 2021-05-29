@@ -1,5 +1,4 @@
-''' modélisation avec utilisation de plotly '''
-'''Le code est expliqué dans l'article sur machinelearnia.com, lien dans le readme'''
+#Modélisation de la propagation et affichage des graphiques avec plotly
 
 #Modules externes
 from sklearn.datasets import make_blobs
@@ -44,25 +43,19 @@ def deces(l, l2, l3, p):  # l: infectés; l2: décès précédents; l3: immunis�
 
 
 def StartSimulation():
-
+    """Simulation de l'épidémie"""
     print('Début de la simulation ... \n')
     start = time.time()
 
+    #Variables de simulation [A CHANGER]
     variance_pop = 1  # recommandé : 1
     rayon_contamination = 0.5  # recommandé : 0.5
     infectiosite = 0.17  # recommandé : 10%
     p = 0.1  # recommandé : 10%
     d = 0.05  # recommandé : 5%
 
-
-
     # NOTE : si les courbes restent constantes, augmentez le rayon de contamination
     # si le virus est trés mortel il n'y aura pas beaucoup de propagation
-
-    # Bleu : '#636EFA'
-    # Rouge : '#EF553B'
-    # Vert : '#00CC96'
-    # Violet : '#AB63FA'
 
     if nb_population < 10 or rayon_contamination <= 0:
         return 'error, nb_population and var_population and rayon_contamination must be >=10 and > 0'
@@ -88,10 +81,12 @@ def StartSimulation():
     data = dict(courbe_sains = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[])
 
     id_patient_0 = rd.randint(0, nb_population - 1)  # on choisit le premier individu infecté au hasard
+    #On infecte le patient 0
     Infect(id_patient_0)
     coord_1er_infecte = [df['x'][id_patient_0], df['y'][id_patient_0]]  # coordonnées du 1er infecté
 
     # Remplissage des listes
+    #On créer une liste avec les coordonnées de chaque individu [A MODIFIER]
     data['coord'].append(0)
     for k in range(nb_population):
         if k==id_patient_0 :
@@ -108,13 +103,20 @@ def StartSimulation():
     jour = 2
     # Jours 2 à n
 
+    #On boucle sur chaque jour de simulation jusqu'à une condition d'arrêt (plus d'infection ou plus de neutre)
     while GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10: #condition d'arrêt
         print("Jour {}...".format(jour))
+
+        #Traitement des individus ayant un état à durée limitée
+        #On régupère tous les individus concernés
         for id_individu, etat, duree_etat in GetListDureeEtat():
             if duree_etat != 0:
+                #Si la durée restante est non nulle, on la diminue d'un jour
                 ReduceDureeEtat(id_individu)
             else:
+                #Lorsque l'on atteint la fin de l'état
                 if etat == INFECTE:
+                    #A la fin d'une infection, on détermine avec les fonctions de probas si l'individus guérit, meurt ou redevient neutre
                     if ChanceMort(id_individu):
                         Mort(id_individu)
                     elif ChanceImmunite(id_individu):
@@ -122,24 +124,32 @@ def StartSimulation():
                     else:
                         Neutre(id_individu)
                 elif etat == IMMUNISE:
+                    #A la fin d'une immunité, l'individu redevient neutre
                     Neutre(id_individu)
 
+        #On boucle sur tous les infectés pour éventuellement infecter des nouvelles personnes
         for id_infecte in GetListEtatInfection(INFECTE):
-            non_sains = 0
             for id_sain in GetListEtatInfection(SAIN):
+                #Si l'individu sain et infectés sont proches, on applique la fonction proba pour déterminer si il devient infecté
+                # A MODIFIER: Il ne faudrait plus utiliser de système de coordonées mais plutot calculer un facteur de rencintre
+                # et faire varier la capacité de transmettre le virus selon le nombre de personnes cotoyés
                 if distance_e(data['coord'][id_infecte],data['coord'][id_sain]) < rayon_contamination :
+                    #On vérifie si l'individu est encore sain à cet endroit de la boucle
                     if GetEtatInfection(id_sain) in SAIN and ChanceInfection(id_sain):
+                        #On infecte l'individu sain
                         Infect(id_sain)
+        #On applique les modifications et on passe au jour suivant
         pop_db.commit()
         jour += 1
 
-        # pour les courbes finales
+        #On ajoute les données du jour aux listes des graphiques
         data['courbe_sains'].append(GetNombreEtatInfection(SAIN))
         data['courbe_infectes'].append(GetNombreEtatInfection(INFECTE))
         data['courbe_immunises'].append(GetNombreEtatInfection(IMMUNISE))
         data['courbe_deces'].append(GetNombreEtatInfection(MORT))
         data['courbe_removed'].append(GetNombreEtatInfection(REMOVED))
 
+    #On calule le rendu du graphique final et on l'affiche
     for (id_individu, etat) in GetAllEtat():
         if (id_individu/nb_population*100) % 10 == 0:
             print("Rendering... {}/{} ({}%)".format(id_individu, nb_population, id_individu/nb_population*100))
