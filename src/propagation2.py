@@ -6,12 +6,13 @@ import time
 import math as m
 import numpy as np
 import matplotlib.pyplot as plt
+from population import*
 
 #Modules internes
 from constants import *
 
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
-    return m.sqrt((x[0] - y[0])**2 + (x[1] - y[1])**2))
+    return m.sqrt((x[0] - y[0])**2 + (x[1] - y[1])**2)
 
 def chance_infecte(p):  # return True si il devient infecté avec une proba p
     proba = int(p * 100)
@@ -83,7 +84,7 @@ def StartSimulation():
         if k==id_patient_0 :
             data['coord'].append(coord_1er_infecte)
         else:
-            data['coord'].append(x[k], x[k]])
+            data['coord'].append([x[k], y[k]])
 
     data['courbe_sains'].append(nb_population-1)
     data['courbe_infectes'].append(1)
@@ -92,45 +93,46 @@ def StartSimulation():
     data['courbe_removed'].append(0)
 
 
-        jour = 2
+    jour = 2
         # Jours 2 à n
     data['abscisse_jour'].append(jour)
 
-while GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10: #condition d'arrêt
-    print("Jour {}...".format(jour))
-    for id_individu, etat, duree_etat in GetListDureeEtat():
-        if duree_etat != 0:
-            ReduceDureeEtat(id_individu)
-        else:
-            if etat == INFECTE:
-                if ChanceMort(id_individu):
-                    Mort(id_individu)
-                elif ChanceImmunite(id_individu):
-                    Immunite(id_individu)
-                else:
+    while GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10: #condition d'arrêt
+        print("Jour {}...".format(jour))
+        for id_individu, etat, duree_etat in GetListDureeEtat():
+            if duree_etat != 0:
+                ReduceDureeEtat(id_individu)
+            else:
+                if etat == INFECTE:
+                    if ChanceMort(id_individu):
+                        Mort(id_individu)
+                    elif ChanceImmunite(id_individu):
+                        Immunite(id_individu)
+                    else:
+                        Neutre(id_individu)
+                elif etat == IMMUNISE:
                     Neutre(id_individu)
-            elif etat == IMMUNISE:
-                Neutre(id_individu)
 
-    for id_infecte in GetListEtatInfection(INFECTE):
-        non_sains = 0
-        for id_sain in GetListEtatInfection(SAIN):
-            if distance_e(data['coord'][id_infecte],data['coord'][id_sain]) < rayon_contamination :
-                if GetEtatInfection(id_sain) in SAIN and ChanceInfection(id_sain):
-                    Infect(id_sain)
-    pop_db.commit()
-    jour += 1
+        for id_infecte in GetListEtatInfection(INFECTE):
+            non_sains = 0
+            for id_sain in GetListEtatInfection(SAIN):
+                if distance_e(data['coord'][id_infecte],data['coord'][id_sain]) < rayon_contamination :
+                    if GetEtatInfection(id_sain) in SAIN and ChanceInfection(id_sain):
+                        Infect(id_sain)
+        pop_db.commit()
+        jour += 1
 
-    # pour les courbes finales
-    data['courbe_sains'].append(GetNombreEtatInfection(SAIN))
-    data['courbe_infectes'].append(GetNombreEtatInfection(INFECTE))
-    data['courbe_immunises'].append(GetNombreEtatInfection(IMMUNISE))
-    data['courbe_deces'].append(GetNombreEtatInfection(MORT))
-    data['courbe_removed'].append(GetNombreEtatInfection(REMOVED))
-    data['abscisse_jour'].append(jour)
+        # pour les courbes finales
+        data['courbe_sains'].append(GetNombreEtatInfection(SAIN))
+        data['courbe_infectes'].append(GetNombreEtatInfection(INFECTE))
+        data['courbe_immunises'].append(GetNombreEtatInfection(IMMUNISE))
+        data['courbe_deces'].append(GetNombreEtatInfection(MORT))
+        data['courbe_removed'].append(GetNombreEtatInfection(REMOVED))
+        data['abscisse_jour'].append(jour)
 
-plt.plot(data['abscisse_jour'], data['courbe_sains'])
-plt.plot(data['abscisse_jour'], data['courbe_infectes'])
-plt.plot(data['abscisse_jour'], data['courbe_immunises'])
-plt.plot(data['abscisse_jour'], data['courbe_deces'])
-plt.plot(data['abscisse_jour'], data['courbe_removed'])
+    plt.plot(data['abscisse_jour'], data['courbe_sains'])
+    plt.plot(data['abscisse_jour'], data['courbe_infectes'])
+    plt.plot(data['abscisse_jour'], data['courbe_immunises'])
+    plt.plot(data['abscisse_jour'], data['courbe_deces'])
+    plt.plot(data['abscisse_jour'], data['courbe_removed'])
+    plt.show()
