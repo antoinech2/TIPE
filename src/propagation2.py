@@ -11,12 +11,26 @@ from population import*
 #Modules internes
 from constants import *
 
+#Variables de simulation [TEMPORAIRE]
+variance_pop = 1  # recommandé : 1
+rayon_contamination = 0.5  # recommandé : 0.5
+infectiosite = 0.17  # recommandé : 10%
+p = 0.15  # recommandé : 10% : IMMUNITE
+d = 0.05  # recommandé : 5% : MORT
+max_jour = 50
+
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return m.sqrt((x[0] - y[0])**2 + (x[1] - y[1])**2)
 
-def chance_infecte(p):  # return True si il devient infecté avec une proba p
+def ChanceInfection(individu):  # return True si il devient infecté avec une proba p
     proba = int(p * 100)
-    return rd.randint(0, 100) <= proba
+    return rd.randint(0, 100) <= infectiosite
+
+def ChanceImmunite(individu):  # l: infectés; l2: immunisés précédents
+    return rd.randint(0, 100) <= p
+
+def ChanceMort(individu):  # l: infectés; l2: décès précédents; l3: immunisés
+    return rd.randint(0, 100) <= d
 
 def immuniser(l, l2, p):  # l: infectés; l2: immunisés précédents
     drop = 0
@@ -72,7 +86,7 @@ def StartSimulation():
     for i in range (nb_population):
             x.append(rd.gauss(0, variance_pop))
             y.append(rd.gauss(0, variance_pop))
-    data = {courbe_sains = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[],abscisse_jour=[]}
+    data = dict(courbe_sains = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[],abscisse_jour=[])
 
     id_patient_0 = rd.randint(0, nb_population - 1)  # on choisit le premier individu infecté au hasard
     Infect(id_patient_0)
@@ -97,7 +111,7 @@ def StartSimulation():
         # Jours 2 à n
     data['abscisse_jour'].append(jour)
 
-    while GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10: #condition d'arrêt
+    while jour <= max_jour and (GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10): #condition d'arrêt
         print("Jour {}...".format(jour))
         for id_individu, etat, duree_etat in GetListDureeEtat():
             if duree_etat != 0:
@@ -130,9 +144,57 @@ def StartSimulation():
         data['courbe_removed'].append(GetNombreEtatInfection(REMOVED))
         data['abscisse_jour'].append(jour)
 
-    plt.plot(data['abscisse_jour'], data['courbe_sains'])
-    plt.plot(data['abscisse_jour'], data['courbe_infectes'])
-    plt.plot(data['abscisse_jour'], data['courbe_immunises'])
-    plt.plot(data['abscisse_jour'], data['courbe_deces'])
-    plt.plot(data['abscisse_jour'], data['courbe_removed'])
+
+    Inf = []
+    Sain = []
+    Imm = []
+    Deces = []
+
+    for id in GetListEtatInfection(INFECTE):
+        Inf.append(data['coord'][id])
+    for id in GetListEtatInfection(NEUTRE):
+        Sain.append(data['coord'][id])
+    for id in GetListEtatInfection(IMMUNISE):
+        Imm.append(data['coord'][id])
+    for id in GetListEtatInfection(MORT):
+        Deces.append(data['coord'][id])
+    Inf = np.array(Inf)
+    Sain = np.array(Sain)
+    Imm = np.array(Imm)
+    Deces = np.array(Deces)
+
+    #Affiche un graphique par courbe
+    plt.subplot(3,2,1)
+    plt.plot(data['abscisse_jour'], data['courbe_sains'], color = '#636EFA')
+    plt.subplot(3,2,2)
+    plt.plot(data['abscisse_jour'], data['courbe_infectes'], color = '#EF553B')
+    plt.subplot(3,2,3)
+    plt.plot(data['abscisse_jour'], data['courbe_immunises'], color = '#00CC96')
+    plt.subplot(3,2,4)
+    plt.plot(data['abscisse_jour'], data['courbe_deces'], color = '#AB63FA')
+    plt.subplot(3,2,5)
+    plt.plot(data['abscisse_jour'], data['courbe_removed'], color = '#AB63FA')
+
+
+    plt.subplot(3,2,6)
+    plt.scatter(Inf[:,0],Inf[:,1], s=5, color = '#EF553B')
+    plt.scatter(Sain[:,0],Sain[:,1], s=5, color = '#636EFA')
+    plt.scatter(Imm[:,0],Imm[:,1], s=5, color = '#00CC96')
+    plt.scatter(Deces[:,0],Deces[:,1], s=5, color = '#AB63FA')
     plt.show()
+
+    #Affiche toutes les courbes sur un graphique
+    """plt.subplot(2,1,1)
+    plt.plot(data['abscisse_jour'], data['courbe_sains'], color = '#636EFA')
+    plt.plot(data['abscisse_jour'], data['courbe_infectes'], color = '#EF553B')
+    plt.plot(data['abscisse_jour'], data['courbe_immunises'], color = '#00CC96')
+    plt.plot(data['abscisse_jour'], data['courbe_deces'], color = '#AB63FA')
+    plt.plot(data['abscisse_jour'], data['courbe_removed'], color = '#AB63FA')
+
+
+    plt.subplot(2,1,2)
+    plt.scatter(Inf[:,0],Inf[:,1], s=5, color = '#EF553B')
+    plt.scatter(Sain[:,0],Sain[:,1], s=5, color = '#636EFA')
+    plt.scatter(Imm[:,0],Imm[:,1], s=5, color = '#00CC96')
+    plt.scatter(Deces[:,0],Deces[:,1], s=5, color = '#AB63FA')
+    plt.show()"""
