@@ -1,18 +1,21 @@
 #Fichier pour générer la population
 #Objectif : recréer une population représentative de la France par rapport à différents critères.
 
+#Modules internes
+from constants import *
+
 #Modules externes
 import sqlite3
 import numpy as np
-
-#Modules internes
-from constants import *
+from sklearn.datasets import make_blobs
+from scipy.spatial import distance
 
 DESTROY_TABLE = True #Mettre à True pour regénérer une nouvelle population à chaque nouvelle exécution
 database_loc_data = "../data/population_data.db" #Chemin de la BDD qui contient les informations de génération de la population
 database_loc_pop = "../data/population.db" #Chemin de la BDD qui contient la liste des individus, et les états infectieux
 
 nb_population = 1000 #Nombre d'individus de la simulation
+variance_pop = 1  # recommandé : 1
 
 #Initialisation des BDD et des curseurs
 data_db = sqlite3.connect(database_loc_data)
@@ -27,14 +30,16 @@ def GeneratePopulation():
         try:
             pop_cur.execute("DROP TABLE population")
             pop_cur.execute("DROP TABLE etat")
+            pop_cur.execute("DROP TABLE distance")
         except:
             pass
 
     #On créer les deux tables.
     # "population" contient la liste des individus, leur âge et présence de maladie chronique
     # "etat" contient l'état infectieux de la population, la durée restante de l'état, le rang vaccinal (nombre d'injections) et le type de vaccin
-    pop_cur.execute('CREATE TABLE IF NOT EXISTS "population" (	"id_individu"	INTEGER NOT NULL, "age"	INTEGER NOT NULL,	"maladie_chronique"	INTEGER NOT NULL DEFAULT 0,	PRIMARY KEY("id_individu" AUTOINCREMENT))')
+    pop_cur.execute('CREATE TABLE IF NOT EXISTS "population" (	"id_individu"	INTEGER NOT NULL, "x_coord" REAL, "y_coord" REAL, "age"	INTEGER NOT NULL,	"maladie_chronique"	INTEGER NOT NULL DEFAULT 0,	PRIMARY KEY("id_individu" AUTOINCREMENT))')
     pop_cur.execute('CREATE TABLE IF NOT EXISTS "etat" ("id_individu" INTEGER NOT NULL, "etat" INTEGER NOT NULL DEFAULT {} , "duree_etat" INTEGER DEFAULT NULL, "phase_vaccin" INTEGER NOT NULL DEFAULT 0, "id_vaccin" INTEGER DEFAULT NULL, PRIMARY KEY("id_individu" AUTOINCREMENT))'.format(NEUTRE))
+    pop_cur.execute('CREATE TABLE IF NOT EXISTS "distance" ("id_1" INTEGER NOT NULL, "id_2" INTEGER NOT NULL, "distance" REAL NOT NULL, PRIMARY KEY("id_1", "id_2"))')
     pop_db.commit()
 
     print("Attribution de l'âge...")
@@ -43,10 +48,31 @@ def GeneratePopulation():
     nb_age = data_cur.execute("SELECT COUNT(age) FROM age").fetchall()[0][0]
     for age in range(nb_age): #On boucle sur tous les âges à attribuer
         #On calcule le nombre d'individu à attribuer cet âge en fonction de la proportion de cet âge dans la population
-        nb_individu_age = round(data_cur.execute("SELECT proportion FROM age WHERE age = ?", (age,)).fetchall()[0][0] * nb_population)
+        if age == 100:
+            nb_individu_age = nb_population - pop_cur.execute("SELECT COUNT(id_individu) FROM population").fetchall()[0][0]
+        else:
+            nb_individu_age = round(data_cur.execute("SELECT proportion FROM age WHERE age = ?", (age,)).fetchall()[0][0] * nb_population)
         for individu in range(nb_individu_age): #On ajoute les individus dans la BDD avec l'âge voulu
             pop_cur.execute("INSERT INTO population (age) VALUES (?)", (age,))
             pop_cur.execute("INSERT INTO etat DEFAULT VALUES")
+    pop_db.commit()
+
+    print("Attribution des coordonées de chaque individu...")
+    x, y = make_blobs(n_samples=nb_population, centers=1, cluster_std=variance_pop) #Génération des coordonées
+    for individu_coord in x:
+        pop_cur.execute("UPDATE population SET x_coord = ?, y_coord = ? WHERE id_individu = (SELECT id_individu FROM population WHERE x_coord IS NULL ORDER BY RANDOM() LIMIT 1)", (individu_coord[0], individu_coord[1]))
+
+    print("Calcul des distances entre chaque individu...")
+    for id_1 in range(1, nb_population+1):
+        if (id_1/nb_population*100) % 10 == 0:
+            print("Processing... {}/{} ({}%)".format(id_1, nb_population, id_1/nb_population*100))
+
+        for id_2 in range(1, nb_population+1):
+            id_1_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_1,)).fetchall()[0]
+            id_2_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_2,)).fetchall()[0]
+            dist = distance.euclidean([id_1_coords[0],id_1_coords[1]],[id_2_coords[0],id_2_coords[1]])
+            pop_cur.execute("INSERT INTO distance (id_1, id_2, distance) VALUES (?, ?, ?)", (id_1, id_2, dist))
+
     pop_db.commit()
 
     print("Attribution de la présence de maladies chroniques...")
@@ -66,13 +92,11 @@ def CloseDB():
     data_cur.close()
     data_db.close()
 
-
 #Getters
 
 def GetAllEtat():
     """Renvoie tous les individus et leur état"""
-    request = pop_cur.execute("SELECT id_individu, etat FROM etat").fetchall()
-    return request#[(r[k][0], r[k][1]) for k in request]
+    return pop_cur.execute("SELECT id_individu, etat FROM etat").fetchall()
 
 def GetNombreEtatInfection(etat):
     """Renvoie le nombre d'invidus qui ont l'état précisé"""
@@ -88,13 +112,20 @@ def GetListEtatInfection(etat):
 
 def GetEtatInfection(id_individu):
     """Renvoie l'état d'un individu en spécifiant son id"""
-    request = pop_cur.execute("SELECT etat FROM etat WHERE id_individu = ?", (int(id_individu),)).fetchall()[0][0]
-    return request
+    return pop_cur.execute("SELECT etat FROM etat WHERE id_individu = ?", (int(id_individu),)).fetchall()[0][0]
 
 def GetListDureeEtat():
     """Renvoie la liste des individus qui ont un état à durée définie, leur état et la durée restante associée"""
-    request = np.array(pop_cur.execute("SELECT id_individu, etat, duree_etat FROM etat WHERE duree_etat NOT NULL").fetchall())
-    return request#request[:, 0], request[:, 1], request[:, 2]
+    return np.array(pop_cur.execute("SELECT id_individu, etat, duree_etat FROM etat WHERE duree_etat NOT NULL").fetchall())
+
+def GetAllVoisins(min_distance):
+    """Retourne la liste des couples d'infecté/sain qui sont suceptibles d'intéragir (propagation possible)"""
+    #return np.array(pop_cur.execute("SELECT infectep.id_individu, sainp.id_individu FROM population AS infectep JOIN etat AS infectee ON infectep.id_individu = infectee.id_individu, population AS sainp JOIN etat AS saine ON sainp.id_individu = saine.id_individu WHERE saine.etat = ? AND infectee.etat = ? AND (SELECT distance FROM distance WHERE id_1 = sainp.id_individu AND id_2 = infectee.id_individu) <= ?", (NEUTRE, INFECTE, min_distance)).fetchall())
+    return np.array(pop_cur.execute("SELECT id_1, id_2 FROM distance JOIN etat AS etat_1 ON etat_1.id_individu = id_1 JOIN etat AS etat_2 ON etat_2.id_individu = id_2 WHERE etat_1.etat = ? AND etat_2.etat = ? AND distance <= ?", (NEUTRE, INFECTE, min_distance)).fetchall())
+
+def GetPosition(id_individu):
+    """Retourne les coordonnées de l'individu"""
+    return np.array(pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_individu,)).fetchall())[0]
 
 #Setter
 
@@ -109,7 +140,7 @@ def ReduceDureeEtat(id_individu):
 
 def ChangeEtat(id_individu, new_etat):
     """Change l'état d'un individu"""
-    pop_cur.execute("UPDATE etat SET etat = ?,  duree_etat = NULL WHERE id_individu = ?", (new_etat, int(id_individu)))
+    pop_cur.execute("UPDATE etat SET etat = ?, duree_etat = NULL WHERE id_individu = ?", (new_etat, int(id_individu)))
 
 def Mort(id_individu):
     """Tue l'individu"""

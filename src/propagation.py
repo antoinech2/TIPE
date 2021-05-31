@@ -18,12 +18,12 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-max_jour = 50
+max_jour = 3000
 
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
 rayon_contamination = 0.5  # recommandé : 0.5
-infectiosite = 0.17  # recommandé : 10%
+infectiosite = 0.2  # recommandé : 10%
 p = 0.15  # recommandé : 10% : IMMUNITE
 d = 0.05  # recommandé : 5% : MORT
 
@@ -119,17 +119,12 @@ def StartSimulation():
                     Neutre(id_individu)
 
         #On boucle sur tous les infectés pour éventuellement infecter des nouvelles personnes
-        for id_infecte in GetListEtatInfection(INFECTE):
-            for id_sain in GetListEtatInfection(NEUTRE):
-                #Si l'individu sain et infectés sont proches, on applique la fonction proba pour déterminer si il devient infecté
-                # A MODIFIER: Il ne faudrait plus utiliser de système de coordonées mais plutot calculer un facteur de rencintre
-                # et faire varier la capacité de transmettre le virus selon le nombre de personnes cotoyés
-                if distance_e(data['coord'][id_infecte],data['coord'][id_sain]) < rayon_contamination :
-                    #On vérifie si l'individu est encore sain à cet endroit de la boucle
-                    if GetEtatInfection(id_sain) in SAIN:
-                        if ChanceInfection(id_sain):
-                            #On infecte l'individu sain
-                            Infect(id_sain)
+        for (id_sain, id_infecte) in GetAllVoisins(rayon_contamination):
+            #On vérifie si l'individu est encore sain à cet endroit de la boucle
+            if GetEtatInfection(id_sain) == NEUTRE:
+                if ChanceInfection(id_sain):
+                    #On infecte l'individu sain
+                    Infect(id_sain)
 
         #On applique les modifications et on passe au jour suivant
         pop_db.commit()
@@ -146,7 +141,8 @@ def StartSimulation():
     for (id_individu, etat) in GetAllEtat():
         if (id_individu/nb_population*100) % 10 == 0:
             print("Rendering... {}/{} ({}%)".format(id_individu, nb_population, id_individu/nb_population*100))
-        fig.add_trace(go.Scatter(x=data['coord'][id_individu], y=data['coord'][id_individu], name=NAME[etat], mode="markers",
+        x, y = GetPosition(id_individu)
+        fig.add_trace(go.Scatter(x=(x,), y=(y,), name=NAME[etat], mode="markers",
                                  marker=dict(
                                      color=COLOR[etat][0],
                                      size=5,
@@ -160,7 +156,7 @@ def StartSimulation():
     labels = ["sains", "infectés", "immunisés", "décédés"]
     fig.add_trace(go.Pie(values=[GetNombreEtatInfection(NEUTRE), GetNombreEtatInfection(INFECTE), GetNombreEtatInfection(IMMUNISE), GetNombreEtatInfection(MORT)], labels=labels, sort=False), 1, 2)
 
-    x_courbe = list(np.arange(0, GetNombreEtatInfection(SAIN)))
+    x_courbe = list(np.arange(0, len(data['courbe_sains'])))
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_sains'], marker=dict(color='#636EFA'), marker_line=dict(width=2),showlegend=False, name="sains",yaxis="y", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_infectes'], marker=dict(color='#EF553B'), marker_line=dict(width=1),showlegend=False, name="infectés",yaxis="y2", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_immunises'], marker=dict(color='#00CC96'), marker_line=dict(width=1),showlegend=False, name="immunisés",yaxis="y3", ), 2, 1)
