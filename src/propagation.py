@@ -18,7 +18,7 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-max_jour = 30
+max_jour = 300
 
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
@@ -63,14 +63,14 @@ def StartSimulation():
                         horizontal_spacing=0.05, vertical_spacing=0.05)
 
     # création des courbes finales et listes des coordonnées
-    data = dict(courbe_sains = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[])
+    data = dict(courbe_neutres = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[])
 
     id_patient_0 = rd.randint(0, nb_population - 1)  # on choisit le premier individu infecté au hasard
     #On infecte le patient 0
     Infect(id_patient_0)
 
     # Remplissage des listes initialement
-    data['courbe_sains'].append(nb_population-1)
+    data['courbe_neutres'].append(nb_population-1)
     data['courbe_infectes'].append(1)
     data['courbe_immunises'].append(0)
     data['courbe_deces'].append(0)
@@ -116,7 +116,7 @@ def StartSimulation():
         jour += 1
 
         #On ajoute les données du jour aux listes des graphiques
-        data['courbe_sains'].append(GetNombreEtatInfection(SAIN))
+        data['courbe_neutres'].append(GetNombreEtatInfection(NEUTRE))
         data['courbe_infectes'].append(GetNombreEtatInfection(INFECTE))
         data['courbe_immunises'].append(GetNombreEtatInfection(IMMUNISE))
         data['courbe_deces'].append(GetNombreEtatInfection(MORT))
@@ -138,11 +138,11 @@ def StartSimulation():
     fig.update_traces(hoverinfo="name")
     fig.update_xaxes(showgrid=False, visible=False, row=1, col=1)
     fig.update_yaxes(showgrid=False, visible=False, row=1, col=1)
-    labels = ["sains", "infectés", "immunisés", "décédés"]
+    labels = ["neutres", "infectés", "immunisés", "décédés"]
     fig.add_trace(go.Pie(values=[GetNombreEtatInfection(NEUTRE), GetNombreEtatInfection(INFECTE), GetNombreEtatInfection(IMMUNISE), GetNombreEtatInfection(MORT)], labels=labels, sort=False), 1, 2)
 
-    x_courbe = list(np.arange(0, len(data['courbe_sains'])))
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_sains'], marker=dict(color='#636EFA'), marker_line=dict(width=2),showlegend=False, name="sains",yaxis="y", ), 2, 1)
+    x_courbe = list(np.arange(0, len(data['courbe_neutres'])))
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_neutres'], marker=dict(color='#636EFA'), marker_line=dict(width=2),showlegend=False, name="neutres",yaxis="y", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_infectes'], marker=dict(color='#EF553B'), marker_line=dict(width=1),showlegend=False, name="infectés",yaxis="y2", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_immunises'], marker=dict(color='#00CC96'), marker_line=dict(width=1),showlegend=False, name="immunisés",yaxis="y3", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_deces'], marker=dict(color='#AB63FA'), marker_line=dict(width=1),showlegend=False, name="décédés",yaxis="y4", ), 2, 1)
