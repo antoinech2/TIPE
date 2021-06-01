@@ -62,28 +62,14 @@ def StartSimulation():
                         specs=[[{'type': 'xy'}, {'type': 'domain'}], [{'type': 'xy', 'colspan': 2}, None]],
                         horizontal_spacing=0.05, vertical_spacing=0.05)
 
-    # dataset
-    x, y = make_blobs(n_samples=nb_population, centers=1, cluster_std=variance_pop)
-    df = pd.DataFrame(dict(x=x[:,0],
-                           y=x[:,1]))
-
     # création des courbes finales et listes des coordonnées
     data = dict(courbe_sains = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[])
 
     id_patient_0 = rd.randint(0, nb_population - 1)  # on choisit le premier individu infecté au hasard
     #On infecte le patient 0
     Infect(id_patient_0)
-    coord_1er_infecte = [df['x'][id_patient_0], df['y'][id_patient_0]]  # coordonnées du 1er infecté
 
-    # Remplissage des listes
-    #On créer une liste avec les coordonnées de chaque individu [A MODIFIER]
-    data['coord'].append(0)
-    for k in range(nb_population):
-        if k==id_patient_0 :
-            data['coord'].append(coord_1er_infecte)
-        else:
-            data['coord'].append([df['x'][k], df['y'][k]])
-
+    # Remplissage des listes initialement
     data['courbe_sains'].append(nb_population-1)
     data['courbe_infectes'].append(1)
     data['courbe_immunises'].append(0)
