@@ -18,7 +18,7 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-max_jour = 3000
+max_jour = 30
 
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
@@ -31,14 +31,13 @@ d = 0.05  # recommandé : 5% : MORT
 #A modifier pour prendre en compte les caractéristiques de chaque individu
 
 def ChanceInfection(individu):  # return True si il devient infecté avec une proba p
-    proba = int(p * 100)
-    return rd.randint(0, 100) <= infectiosite
+    return rd.randint(0, 100) <= infectiosite*100
 
 def ChanceImmunite(individu):  # l: infectés; l2: immunisés précédents
-    return rd.randint(0, 100) <= p
+    return rd.randint(0, 100) <= p*100
 
 def ChanceMort(individu):  # l: infectés; l2: décès précédents; l3: immunisés
-    return rd.randint(0, 100) <= d
+    return rd.randint(0, 100) <= d*100
 
 def StartSimulation():
     """Simulation de l'épidémie"""
