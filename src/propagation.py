@@ -63,7 +63,7 @@ def StartSimulation():
                         horizontal_spacing=0.05, vertical_spacing=0.05)
 
     # création des courbes finales et listes des coordonnées
-    data = dict(courbe_neutres = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_removed = [],coord=[])
+    data = dict(courbe_neutres = [],courbe_infectes = [],courbe_immunises = [],courbe_deces = [],courbe_sains = [])
 
     id_patient_0 = rd.randint(0, nb_population - 1)  # on choisit le premier individu infecté au hasard
     #On infecte le patient 0
@@ -74,7 +74,7 @@ def StartSimulation():
     data['courbe_infectes'].append(1)
     data['courbe_immunises'].append(0)
     data['courbe_deces'].append(0)
-    data['courbe_removed'].append(0)
+    data['courbe_sains'].append(nb_population-1)
 
     jour = 2
     # Jours 2 à n
@@ -120,7 +120,7 @@ def StartSimulation():
         data['courbe_infectes'].append(GetNombreEtatInfection(INFECTE))
         data['courbe_immunises'].append(GetNombreEtatInfection(IMMUNISE))
         data['courbe_deces'].append(GetNombreEtatInfection(MORT))
-        data['courbe_removed'].append(GetNombreEtatInfection(REMOVED))
+        data['courbe_sains'].append(GetNombreEtatInfection(SAIN))
 
     #On calule le rendu du graphique final et on l'affiche
     for (id_individu, etat) in GetAllEtat():
@@ -146,7 +146,7 @@ def StartSimulation():
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_infectes'], marker=dict(color='#EF553B'), marker_line=dict(width=1),showlegend=False, name="infectés",yaxis="y2", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_immunises'], marker=dict(color='#00CC96'), marker_line=dict(width=1),showlegend=False, name="immunisés",yaxis="y3", ), 2, 1)
     fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_deces'], marker=dict(color='#AB63FA'), marker_line=dict(width=1),showlegend=False, name="décédés",yaxis="y4", ), 2, 1)
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_removed'], marker=dict(color='#000000'), marker_line=dict(width=1), showlegend=False, name="removed",yaxis="y5", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_sains'], marker=dict(color='#000000'), marker_line=dict(width=1), showlegend=False, name="sains",yaxis="y5", ), 2, 1)
     fig.update_xaxes(title_text="jours", row=2, col=1)
     fig.update_yaxes(title_text="nombre d'individus", row=2, col=1)
     fig.add_annotation(text="Maximum d'infectés", x=data['courbe_infectes'].index(max(data['courbe_infectes'])),# ajouter un texte avec une flèche

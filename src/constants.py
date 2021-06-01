@@ -7,7 +7,7 @@ NEUTRE = 0
 INFECTE = 1
 IMMUNISE = 2
 SAIN = [NEUTRE, IMMUNISE]
-REMOVED = [IMMUNISE, MORT]
+#REMOVED = [IMMUNISE, MORT]
 
 #Constantes des libbelés des états sur le graphe final
 NAME = {
