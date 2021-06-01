@@ -29,5 +29,6 @@ IMMUNISE : ['#00CC96', '#00CC96']
 
 #Durée des phases infectieuses
 DUREE = {
-INFECTE : 10
+INFECTE : 10,
+IMMUNISE : 100
 }

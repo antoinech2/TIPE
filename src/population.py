@@ -11,6 +11,11 @@ from sklearn.datasets import make_blobs
 from scipy.spatial import distance
 
 DESTROY_TABLE = True #Mettre à True pour regénérer une nouvelle population à chaque nouvelle exécution
+CLEAN_TABLE = False
+REGENERATE_AGE = True
+REGENERATE_POSITION = True
+REGENERATE_MALADIE = True
+
 database_loc_data = "../data/population_data.db" #Chemin de la BDD qui contient les informations de génération de la population
 database_loc_pop = "../data/population.db" #Chemin de la BDD qui contient la liste des individus, et les états infectieux
 
@@ -42,46 +47,64 @@ def GeneratePopulation():
     pop_cur.execute('CREATE TABLE IF NOT EXISTS "distance" ("id_1" INTEGER NOT NULL, "id_2" INTEGER NOT NULL, "distance" REAL NOT NULL, PRIMARY KEY("id_1", "id_2"))')
     pop_db.commit()
 
-    print("Attribution de l'âge...")
-    #AGE
-    #On récupère la répartition des âges dans la BDD
-    nb_age = data_cur.execute("SELECT COUNT(age) FROM age").fetchall()[0][0]
-    for age in range(nb_age): #On boucle sur tous les âges à attribuer
-        #On calcule le nombre d'individu à attribuer cet âge en fonction de la proportion de cet âge dans la population
-        if age == 100:
-            nb_individu_age = nb_population - pop_cur.execute("SELECT COUNT(id_individu) FROM population").fetchall()[0][0]
-        else:
-            nb_individu_age = round(data_cur.execute("SELECT proportion FROM age WHERE age = ?", (age,)).fetchall()[0][0] * nb_population)
-        for individu in range(nb_individu_age): #On ajoute les individus dans la BDD avec l'âge voulu
-            pop_cur.execute("INSERT INTO population (age) VALUES (?)", (age,))
+    if CLEAN_TABLE:
+        pop_cur.execute("DELETE FROM etat")
+        for i in range(nb_population):
             pop_cur.execute("INSERT INTO etat DEFAULT VALUES")
-    pop_db.commit()
 
-    print("Attribution des coordonées de chaque individu...")
-    x, y = make_blobs(n_samples=nb_population, centers=1, cluster_std=variance_pop) #Génération des coordonées
-    for individu_coord in x:
-        pop_cur.execute("UPDATE population SET x_coord = ?, y_coord = ? WHERE id_individu = (SELECT id_individu FROM population WHERE x_coord IS NULL ORDER BY RANDOM() LIMIT 1)", (individu_coord[0], individu_coord[1]))
 
-    print("Calcul des distances entre chaque individu...")
-    for id_1 in range(1, nb_population+1):
-        if (id_1/nb_population*100) % 10 == 0:
-            print("Processing... {}/{} ({}%)".format(id_1, nb_population, id_1/nb_population*100))
+    if REGENERATE_AGE:
+        print("Attribution de l'âge...")
+        #AGE
+        #On récupère la répartition des âges dans la BDD
+        nb_age = data_cur.execute("SELECT COUNT(age) FROM age").fetchall()[0][0]
+        for age in range(nb_age): #On boucle sur tous les âges à attribuer
+            #On calcule le nombre d'individu à attribuer cet âge en fonction de la proportion de cet âge dans la population
+            if age == 100:
+                nb_individu_age = nb_population - pop_cur.execute("SELECT COUNT(id_individu) FROM population").fetchall()[0][0]
+            else:
+                nb_individu_age = round(data_cur.execute("SELECT proportion FROM age WHERE age = ?", (age,)).fetchall()[0][0] * nb_population)
+            for individu in range(nb_individu_age): #On ajoute les individus dans la BDD avec l'âge voulu
+                pop_cur.execute("INSERT INTO population (age) VALUES (?)", (age,))
+                pop_cur.execute("INSERT INTO etat DEFAULT VALUES")
+        pop_db.commit()
+    else:
+        print("Réutilisation des données d'âge de la simulation précédente")
 
-        for id_2 in range(1, nb_population+1):
-            id_1_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_1,)).fetchall()[0]
-            id_2_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_2,)).fetchall()[0]
-            dist = distance.euclidean([id_1_coords[0],id_1_coords[1]],[id_2_coords[0],id_2_coords[1]])
-            pop_cur.execute("INSERT INTO distance (id_1, id_2, distance) VALUES (?, ?, ?)", (id_1, id_2, dist))
+    if REGENERATE_POSITION :
 
-    pop_db.commit()
+        print("Attribution des coordonées de chaque individu...")
+        x, y = make_blobs(n_samples=nb_population, centers=1, cluster_std=variance_pop) #Génération des coordonées
+        for individu_coord in x:
+            pop_cur.execute("UPDATE population SET x_coord = ?, y_coord = ? WHERE id_individu = (SELECT id_individu FROM population WHERE x_coord IS NULL ORDER BY RANDOM() LIMIT 1)", (individu_coord[0], individu_coord[1]))
 
-    print("Attribution de la présence de maladies chroniques...")
-    #MALADIES CHRONIQUES
-    # On récupère chaque tranche d'âge avec la proportion de personnes qui ont une maladie chronique
-    for (age_min, age_max, proportion) in data_cur.execute("SELECT * FROM maladie_chronique").fetchall():
-        #On attribut aléatoirement la bonne proportion de maladie pour chaque âge
-        pop_cur.execute("UPDATE population SET maladie_chronique = True WHERE id_individu IN (SELECT id_individu FROM population WHERE age >= ? AND age <= ? ORDER BY RANDOM() LIMIT ROUND ((SELECT COUNT(id_individu) FROM population WHERE age >= ? AND age <= ?) * ?))", (age_min, age_max, age_min, age_max, proportion))
-    pop_db.commit()
+        print("Calcul des distances entre chaque individu...")
+        for id_1 in range(1, nb_population+1):
+            if (id_1/nb_population*100) % 10 == 0:
+                print("Processing... {}/{} ({}%)".format(id_1, nb_population, id_1/nb_population*100))
+
+            for id_2 in range(1, nb_population+1):
+                id_1_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_1,)).fetchall()[0]
+                id_2_coords = pop_cur.execute("SELECT x_coord, y_coord FROM population WHERE id_individu = ?", (id_2,)).fetchall()[0]
+                dist = distance.euclidean([id_1_coords[0],id_1_coords[1]],[id_2_coords[0],id_2_coords[1]])
+                pop_cur.execute("INSERT INTO distance (id_1, id_2, distance) VALUES (?, ?, ?)", (id_1, id_2, dist))
+
+        pop_db.commit()
+
+    else:
+        print("Réutilisation des données de position de la simulation précédente")
+
+    if REGENERATE_MALADIE:
+        print("Attribution de la présence de maladies chroniques...")
+        #MALADIES CHRONIQUES
+        # On récupère chaque tranche d'âge avec la proportion de personnes qui ont une maladie chronique
+        for (age_min, age_max, proportion) in data_cur.execute("SELECT * FROM maladie_chronique").fetchall():
+            #On attribut aléatoirement la bonne proportion de maladie pour chaque âge
+            pop_cur.execute("UPDATE population SET maladie_chronique = True WHERE id_individu IN (SELECT id_individu FROM population WHERE age >= ? AND age <= ? ORDER BY RANDOM() LIMIT ROUND ((SELECT COUNT(id_individu) FROM population WHERE age >= ? AND age <= ?) * ?))", (age_min, age_max, age_min, age_max, proportion))
+        pop_db.commit()
+    else:
+        print("Réutilisation des données de maladies de la simulation précédente")
+
 
     print("Population générée !")
 
@@ -149,6 +172,7 @@ def Mort(id_individu):
 def Immunite(id_individu):
     """Rend l'individu immunisé"""
     ChangeEtat(id_individu, IMMUNISE)
+    pop_cur.execute("UPDATE etat SET duree_etat = ? WHERE id_individu = ?", (DUREE[IMMUNISE], int(id_individu)))
 
 def Neutre(id_individu):
     """Rend l'individu neutre, c'est à dire vulnérable mais non infecté"""

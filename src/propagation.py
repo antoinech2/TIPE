@@ -18,12 +18,12 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-max_jour = 300
+max_jour = 3000
 
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
 rayon_contamination = 0.5  # recommandé : 0.5
-infectiosite = 0.2  # recommandé : 10%
+infectiosite = 0.05  # recommandé : 10%
 p = 0.15  # recommandé : 10% : IMMUNITE
 d = 0.05  # recommandé : 5% : MORT
 
