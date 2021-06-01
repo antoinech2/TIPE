@@ -23,7 +23,7 @@ max_jour = 3000
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
 rayon_contamination = 0.5  # recommandé : 0.5
-infectiosite = 0.05  # recommandé : 10%
+infectiosite = 0.005  # recommandé : 10%
 p = 0.15  # recommandé : 10% : IMMUNITE
 d = 0.05  # recommandé : 5% : MORT
 
@@ -31,13 +31,13 @@ d = 0.05  # recommandé : 5% : MORT
 #A modifier pour prendre en compte les caractéristiques de chaque individu
 
 def ChanceInfection(individu):  # return True si il devient infecté avec une proba p
-    return rd.randint(0, 100) <= infectiosite*100
+    return rd.random() <= infectiosite
 
 def ChanceImmunite(individu):  # l: infectés; l2: immunisés précédents
-    return rd.randint(0, 100) <= p*100
+    return rd.random() <= p
 
 def ChanceMort(individu):  # l: infectés; l2: décès précédents; l3: immunisés
-    return rd.randint(0, 100) <= d*100
+    return rd.random() <= d
 
 def StartSimulation():
     """Simulation de l'épidémie"""
@@ -80,7 +80,7 @@ def StartSimulation():
     # Jours 2 à n
 
     #On boucle sur chaque jour de simulation jusqu'à une condition d'arrêt (plus d'infection ou plus de neutre)
-    while jour <= max_jour and (GetNombreEtatInfection(INFECTE) > 0.08 * nb_population or GetNombreEtatInfection(NEUTRE) > 10): #condition d'arrêt
+    while jour <= max_jour and (GetNombreEtatInfection(IMMUNISE) > 0 or GetNombreEtatInfection(INFECTE) > 0): #condition d'arrêt
         print("Jour {}...".format(jour))
 
         #Traitement des individus ayant un état à durée limitée
