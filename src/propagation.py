@@ -18,14 +18,14 @@ from constants import *
 def distance_e(x, y):  # distance entre 2 points du plan cartésien
     return distance.euclidean([x[0],x[1]],[y[0],y[1]])
 
-max_jour = 3000
+max_jour = 1000
 
 #Variables de simulation [TEMPORAIRE]
 variance_pop = 1  # recommandé : 1
 rayon_contamination = 0.5  # recommandé : 0.5
-infectiosite = 0.005  # recommandé : 10%
+infectiosite = 0.01  # recommandé : 10%
 p = 0.15  # recommandé : 10% : IMMUNITE
-d = 0.05  # recommandé : 5% : MORT
+d = 0.02  # recommandé : 5% : MORT
 
 #Fonctions temporaires pour déterminer la propagation du virus
 #A modifier pour prendre en compte les caractéristiques de chaque individu
@@ -142,11 +142,11 @@ def StartSimulation():
     fig.add_trace(go.Pie(values=[GetNombreEtatInfection(NEUTRE), GetNombreEtatInfection(INFECTE), GetNombreEtatInfection(IMMUNISE), GetNombreEtatInfection(MORT)], labels=labels, sort=False), 1, 2)
 
     x_courbe = list(np.arange(0, len(data['courbe_neutres'])))
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_neutres'], marker=dict(color='#636EFA'), marker_line=dict(width=2),showlegend=False, name="neutres",yaxis="y", ), 2, 1)
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_infectes'], marker=dict(color='#EF553B'), marker_line=dict(width=1),showlegend=False, name="infectés",yaxis="y2", ), 2, 1)
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_immunises'], marker=dict(color='#00CC96'), marker_line=dict(width=1),showlegend=False, name="immunisés",yaxis="y3", ), 2, 1)
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_deces'], marker=dict(color='#AB63FA'), marker_line=dict(width=1),showlegend=False, name="décédés",yaxis="y4", ), 2, 1)
-    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_sains'], marker=dict(color='#000000'), marker_line=dict(width=1), showlegend=False, name="sains",yaxis="y5", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_neutres'], marker=dict(color='#636EFA'), marker_line=dict(width=0.5),showlegend=False, name="neutres",yaxis="y", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_infectes'], marker=dict(color='#EF553B'), marker_line=dict(width=0.5),showlegend=False, name="infectés",yaxis="y2", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_immunises'], marker=dict(color='#00CC96'), marker_line=dict(width=0.5),showlegend=False, name="immunisés",yaxis="y3", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_deces'], marker=dict(color='#AB63FA'), marker_line=dict(width=0.5),showlegend=False, name="décédés",yaxis="y4", ), 2, 1)
+    fig.add_trace(go.Scatter(x=x_courbe, y=data['courbe_sains'], marker=dict(color='#000000'), marker_line=dict(width=0.5), showlegend=False, name="sains",yaxis="y5", ), 2, 1)
     fig.update_xaxes(title_text="jours", row=2, col=1)
     fig.update_yaxes(title_text="nombre d'individus", row=2, col=1)
     fig.add_annotation(text="Maximum d'infectés", x=data['courbe_infectes'].index(max(data['courbe_infectes'])),# ajouter un texte avec une flèche
